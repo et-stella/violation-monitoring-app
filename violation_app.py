@@ -105,7 +105,7 @@ if uploaded_file:
             st.write(f"위반 고객 수: {result1['SAPID'].nunique()}명")
         else:
             st.write("위반 고객이 없습니다.")
-        st.dataframe(result1)
+        st.dataframe(result1.groupby('SAPID')['TotalQuantity'].sum().reset_index())
 
     with tab2:
         st.markdown("**조건 2:** 30일 내 서로 다른 Article을 수량 기준 5개 초과 구매")
@@ -113,7 +113,7 @@ if uploaded_file:
             st.write(f"위반 고객 수: {result2['SAPID'].nunique()}명")
         else:
             st.write("위반 고객이 없습니다.")
-        st.dataframe(result2)
+        st.dataframe(result2.groupby('SAPID')['TotalQuantity'].sum().reset_index())
 
     with tab3:
         st.markdown("**조건 3:** 365일 내 서로 다른 Article을 수량 기준 10개 초과 구매")
@@ -121,7 +121,7 @@ if uploaded_file:
             st.write(f"위반 고객 수: {result3['SAPID'].nunique()}명")
         else:
             st.write("위반 고객이 없습니다.")
-        st.dataframe(result3)
+        st.dataframe(result3.groupby('SAPID')['TotalQuantity'].sum().reset_index())
 
     with tab4:
         st.markdown("**리턴이 많은 고객 + Article별 리턴율**")
