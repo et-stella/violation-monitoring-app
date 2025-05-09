@@ -81,22 +81,11 @@ if uploaded_file:
     st.subheader("✅ 업로드한 데이터 미리보기")
     st.dataframe(df.head())
 
-    # 수량 기준 필터 설정
-    min_qty = st.slider("🔧 최소 수량 필터", min_value=1, max_value=100, value=1)
-    min_return_rate = st.slider("📉 최소 리턴율 필터", min_value=0.0, max_value=1.0, value=0.0, step=0.05)
-
-    # 조건별 탐지 실행 및 정렬 + 필터링
-    result1 = detect_condition_1(df)
-    result1 = result1[result1['TotalQuantity'] >= min_qty].sort_values(by='TotalQuantity', ascending=False)
-
-    result2 = detect_condition_2(df)
-    result2 = result2[result2['TotalQuantity'] >= min_qty].sort_values(by='TotalQuantity', ascending=False)
-
-    result3 = detect_condition_3(df)
-    result3 = result3[result3['TotalQuantity'] >= min_qty].sort_values(by='TotalQuantity', ascending=False)
-
+    # 조건별 탐지 실행 및 정렬
+    result1 = detect_condition_1(df).sort_values(by='TotalQuantity', ascending=False)
+    result2 = detect_condition_2(df).sort_values(by='TotalQuantity', ascending=False)
+    result3 = detect_condition_3(df).sort_values(by='TotalQuantity', ascending=False)
     returners = detect_heavy_returners(df)
-    returners = returners[returners['ReturnRate'] >= min_return_rate]
 
     # 결과 출력
     tab1, tab2, tab3, tab4 = st.tabs(["🔍 조건 1", "🔍 조건 2", "🔍 조건 3", "↩️ 리턴 고객"])
