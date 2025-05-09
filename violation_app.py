@@ -20,7 +20,7 @@ def detect_condition_1(df):
         for date in group['PurchaseDate']:
             qty = group[(group['PurchaseDate'] >= date - pd.Timedelta(days=365)) &
                         (group['PurchaseDate'] <= date)]['NetQuantity'].sum()
-            if qty > 2:
+            if qty > 1:
                 result.append({'SAPID': sap, 'Article': article, 'TotalQuantity': total_qty})
                 break
     return pd.DataFrame(result)
@@ -100,34 +100,47 @@ if uploaded_file:
     tab1, tab2, tab3, tab4 = st.tabs(["🔍 조건 1", "🔍 조건 2", "🔍 조건 3", "↩️ 리턴 고객"])
 
     with tab1:
-        st.markdown("**조건 1:** 동일 Article을 365일 내 수량 기준 3개 초과 구매")
-        st.write(f"위반 고객 수: {result1['SAPID'].nunique()}명")
+        st.markdown("**조건 1:** 동일 Article을 365일 내 수량 기준 2개 초과 구매")
+        if 'SAPID' in result1.columns:
+            st.write(f"위반 고객 수: {result1['SAPID'].nunique()}명")
+        else:
+            st.write("위반 고객이 없습니다.")
         st.dataframe(result1)
 
     with tab2:
         st.markdown("**조건 2:** 30일 내 서로 다른 Article을 수량 기준 5개 초과 구매")
-        st.write(f"위반 고객 수: {result2['SAPID'].nunique()}명")
+        if 'SAPID' in result2.columns:
+            st.write(f"위반 고객 수: {result2['SAPID'].nunique()}명")
+        else:
+            st.write("위반 고객이 없습니다.")
         st.dataframe(result2)
 
     with tab3:
         st.markdown("**조건 3:** 365일 내 서로 다른 Article을 수량 기준 10개 초과 구매")
-        st.write(f"위반 고객 수: {result3['SAPID'].nunique()}명")
+        if 'SAPID' in result3.columns:
+            st.write(f"위반 고객 수: {result3['SAPID'].nunique()}명")
+        else:
+            st.write("위반 고객이 없습니다.")
         st.dataframe(result3)
 
     with tab4:
         st.markdown("**리턴이 많은 고객 + Article별 리턴율**")
-        st.write(f"리턴 고객 수: {returners['SAPID'].nunique()}명")
+        if 'SAPID' in returners.columns:
+            st.write(f"리턴 고객 수: {returners['SAPID'].nunique()}명")
+        else:
+            st.write("리턴 고객이 없습니다.")
         st.dataframe(returners)
 
         # 리턴 수량 상위 10개 Article 시각화
-        top_articles = returners.groupby('Article')['ReturnQty'].sum().sort_values(ascending=False).head(10)
-        st.markdown("**📊 가장 많이 리턴된 Article Top 10**")
-        fig, ax = plt.subplots()
-        top_articles.plot(kind='bar', ax=ax)
-        ax.set_ylabel("Return Quantity")
-        ax.set_xlabel("Article")
-        ax.set_title("Top 10 Returned Articles")
-        st.pyplot(fig)
+        if not returners.empty:
+            top_articles = returners.groupby('Article')['ReturnQty'].sum().sort_values(ascending=False).head(10)
+            st.markdown("**📊 가장 많이 리턴된 Article Top 10**")
+            fig, ax = plt.subplots()
+            top_articles.plot(kind='bar', ax=ax)
+            ax.set_ylabel("Return Quantity")
+            ax.set_xlabel("Article")
+            ax.set_title("Top 10 Returned Articles")
+            st.pyplot(fig)
 
 else:
     st.info("👈 왼쪽에서 엑셀 파일을 업로드하세요.")
