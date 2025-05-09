@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="커머셜 정책 위반 탐지기", page_icon="🛑", layout="wide")
 st.title("🛑 커머셜 정책 위반 탐지기")
@@ -8,46 +9,62 @@ st.markdown("고객의 구매 수량을 기반으로 정책 위반 가능성을 
 # 📁 파일 업로드
 uploaded_file = st.file_uploader("엑셀 파일 업로드", type=["xlsx"], key="file_upload_1")
 
-# 🧠 함수 정의 (NetQuantity 기준 + Article 기준으로 통일)
+# 🧠 함수 정의 (NetQuantity 기준 + Article 기준 + NetQuantity 총합이 0인 그룹 제외)
 def detect_condition_1(df):
-    result = set()
+    result = []
     for (sap, article), group in df.groupby(['SAPID', 'Article']):
+        total_qty = group['NetQuantity'].sum()
+        if total_qty <= 0:
+            continue
         group = group.sort_values('PurchaseDate')
         for date in group['PurchaseDate']:
             qty = group[(group['PurchaseDate'] >= date - pd.Timedelta(days=365)) &
                         (group['PurchaseDate'] <= date)]['NetQuantity'].sum()
-            if qty > 2:  # 수량 2개 초과 → 3개 이상
-                result.add(sap)
+            if qty > 2:
+                result.append({'SAPID': sap, 'Article': article, 'TotalQuantity': total_qty})
                 break
-    return sorted(list(result))
+    return pd.DataFrame(result)
 
 def detect_condition_2(df):
-    result = set()
+    result = []
     for sap, group in df.groupby('SAPID'):
         group = group.sort_values('PurchaseDate')
         for date in group['PurchaseDate']:
             window = group[(group['PurchaseDate'] >= date - pd.Timedelta(days=30)) &
                            (group['PurchaseDate'] <= date)]
             qty_by_article = window.groupby('Article')['NetQuantity'].sum()
-            valid_article_count = (qty_by_article > 0).sum()  # 합계가 0 초과인 Article만 셈
-            if valid_article_count > 5:
-                result.add(sap)
+            qty_by_article = qty_by_article[qty_by_article > 0]
+            if len(qty_by_article) > 5:
+                for article, qty in qty_by_article.items():
+                    result.append({'SAPID': sap, 'Article': article, 'TotalQuantity': qty})
                 break
-    return sorted(list(result))
+    return pd.DataFrame(result)
 
 def detect_condition_3(df):
-    result = set()
+    result = []
     for sap, group in df.groupby('SAPID'):
         group = group.sort_values('PurchaseDate')
         for date in group['PurchaseDate']:
             window = group[(group['PurchaseDate'] >= date - pd.Timedelta(days=365)) &
                            (group['PurchaseDate'] <= date)]
             qty_by_article = window.groupby('Article')['NetQuantity'].sum()
-            valid_article_count = (qty_by_article > 0).sum()  # 합계가 0 초과인 Article만 셈
-            if valid_article_count > 10:
-                result.add(sap)
+            qty_by_article = qty_by_article[qty_by_article > 0]
+            if len(qty_by_article) > 10:
+                for article, qty in qty_by_article.items():
+                    result.append({'SAPID': sap, 'Article': article, 'TotalQuantity': qty})
                 break
-    return sorted(list(result))
+    return pd.DataFrame(result)
+
+def detect_heavy_returners(df):
+    return_df = df[df['NetQuantity'] < 0]
+    return_summary = return_df.groupby(['SAPID', 'Article'])['NetQuantity'].sum().reset_index()
+    return_summary['ReturnQty'] = return_summary['NetQuantity'].abs()
+    total_purchase = df[df['NetQuantity'] > 0].groupby(['SAPID', 'Article'])['NetQuantity'].sum().reset_index()
+    merged = pd.merge(return_summary, total_purchase, on=['SAPID', 'Article'], how='left', suffixes=('_Return', '_Purchase'))
+    merged['ReturnRate'] = merged['ReturnQty'] / merged['NetQuantity_Purchase']
+    merged = merged.drop(columns=['NetQuantity_Return', 'NetQuantity_Purchase'])
+    merged = merged[merged['ReturnRate'].notna()].sort_values(by='ReturnQty', ascending=False)
+    return merged
 
 # ✅ 실행 로직
 if uploaded_file:
@@ -64,28 +81,55 @@ if uploaded_file:
     st.subheader("✅ 업로드한 데이터 미리보기")
     st.dataframe(df.head())
 
-    # 조건별 탐지 실행
+    # 수량 기준 필터 설정
+    min_qty = st.slider("🔧 최소 수량 필터", min_value=1, max_value=100, value=1)
+    min_return_rate = st.slider("📉 최소 리턴율 필터", min_value=0.0, max_value=1.0, value=0.0, step=0.05)
+
+    # 조건별 탐지 실행 및 정렬 + 필터링
     result1 = detect_condition_1(df)
+    result1 = result1[result1['TotalQuantity'] >= min_qty].sort_values(by='TotalQuantity', ascending=False)
+
     result2 = detect_condition_2(df)
+    result2 = result2[result2['TotalQuantity'] >= min_qty].sort_values(by='TotalQuantity', ascending=False)
+
     result3 = detect_condition_3(df)
+    result3 = result3[result3['TotalQuantity'] >= min_qty].sort_values(by='TotalQuantity', ascending=False)
+
+    returners = detect_heavy_returners(df)
+    returners = returners[returners['ReturnRate'] >= min_return_rate]
 
     # 결과 출력
-    tab1, tab2, tab3 = st.tabs(["🔍 조건 1", "🔍 조건 2", "🔍 조건 3"])
+    tab1, tab2, tab3, tab4 = st.tabs(["🔍 조건 1", "🔍 조건 2", "🔍 조건 3", "↩️ 리턴 고객"])
 
     with tab1:
         st.markdown("**조건 1:** 동일 Article을 365일 내 수량 기준 3개 초과 구매")
-        st.write(f"위반 고객 수: {len(result1)}명")
-        st.dataframe(pd.DataFrame(result1, columns=["SAPID"]))
+        st.write(f"위반 고객 수: {result1['SAPID'].nunique()}명")
+        st.dataframe(result1)
 
     with tab2:
         st.markdown("**조건 2:** 30일 내 서로 다른 Article을 수량 기준 5개 초과 구매")
-        st.write(f"위반 고객 수: {len(result2)}명")
-        st.dataframe(pd.DataFrame(result2, columns=["SAPID"]))
+        st.write(f"위반 고객 수: {result2['SAPID'].nunique()}명")
+        st.dataframe(result2)
 
     with tab3:
         st.markdown("**조건 3:** 365일 내 서로 다른 Article을 수량 기준 10개 초과 구매")
-        st.write(f"위반 고객 수: {len(result3)}명")
-        st.dataframe(pd.DataFrame(result3, columns=["SAPID"]))
+        st.write(f"위반 고객 수: {result3['SAPID'].nunique()}명")
+        st.dataframe(result3)
+
+    with tab4:
+        st.markdown("**리턴이 많은 고객 + Article별 리턴율**")
+        st.write(f"리턴 고객 수: {returners['SAPID'].nunique()}명")
+        st.dataframe(returners)
+
+        # 리턴 수량 상위 10개 Article 시각화
+        top_articles = returners.groupby('Article')['ReturnQty'].sum().sort_values(ascending=False).head(10)
+        st.markdown("**📊 가장 많이 리턴된 Article Top 10**")
+        fig, ax = plt.subplots()
+        top_articles.plot(kind='bar', ax=ax)
+        ax.set_ylabel("Return Quantity")
+        ax.set_xlabel("Article")
+        ax.set_title("Top 10 Returned Articles")
+        st.pyplot(fig)
 
 else:
     st.info("👈 왼쪽에서 엑셀 파일을 업로드하세요.")
