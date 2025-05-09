@@ -1,14 +1,14 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="Abusing Monitoring", page_icon="🛑", layout="wide")
-st.title("🛑 Abusing Monitoring")
-st.markdown("구매 수량을 기반으로 위반 가능성을 분석합니다.")
+st.set_page_config(page_title="커머셜 정책 위반 탐지기", page_icon="🛑", layout="wide")
+st.title("🛑 커머셜 정책 위반 탐지기")
+st.markdown("고객의 구매 수량을 기반으로 정책 위반 가능성을 분석합니다.")
 
 # 📁 파일 업로드
 uploaded_file = st.file_uploader("엑셀 파일 업로드", type=["xlsx"], key="file_upload_1")
 
-# 🧠 함수 정의 (NetQuantity 기준)
+# 🧠 함수 정의 (NetQuantity 기준 + Article 기준으로 통일)
 def detect_condition_1(df):
     result = set()
     for (sap, article), group in df.groupby(['SAPID', 'Article']):
@@ -28,8 +28,9 @@ def detect_condition_2(df):
         for date in group['PurchaseDate']:
             window = group[(group['PurchaseDate'] >= date - pd.Timedelta(days=30)) &
                            (group['PurchaseDate'] <= date)]
-            qty_by_ref = window.groupby('ProductReference')['NetQuantity'].sum()
-            if (qty_by_ref > 0).sum() > 5:  # 서로 다른 제품 5개 초과 수량 보유
+            qty_by_article = window.groupby('Article')['NetQuantity'].sum()
+            valid_article_count = (qty_by_article > 0).sum()  # 합계가 0 초과인 Article만 셈
+            if valid_article_count > 5:
                 result.add(sap)
                 break
     return sorted(list(result))
@@ -41,8 +42,9 @@ def detect_condition_3(df):
         for date in group['PurchaseDate']:
             window = group[(group['PurchaseDate'] >= date - pd.Timedelta(days=365)) &
                            (group['PurchaseDate'] <= date)]
-            qty_by_ref = window.groupby('ProductReference')['NetQuantity'].sum()
-            if (qty_by_ref > 0).sum() > 10:  # 서로 다른 제품 10개 초과 수량 보유
+            qty_by_article = window.groupby('Article')['NetQuantity'].sum()
+            valid_article_count = (qty_by_article > 0).sum()  # 합계가 0 초과인 Article만 셈
+            if valid_article_count > 10:
                 result.add(sap)
                 break
     return sorted(list(result))
@@ -54,7 +56,7 @@ if uploaded_file:
     df['NetQuantity'] = pd.to_numeric(df['NetQuantity'], errors='coerce').fillna(0)
 
     # 필수 컬럼 체크
-    required_cols = ['SAPID', 'Article', 'ProductReference', 'PurchaseDate', 'NetQuantity']
+    required_cols = ['SAPID', 'Article', 'PurchaseDate', 'NetQuantity']
     if not all(col in df.columns for col in required_cols):
         st.error(f"❗ 필수 컬럼이 없습니다: {required_cols}")
         st.stop()
@@ -76,14 +78,14 @@ if uploaded_file:
         st.dataframe(pd.DataFrame(result1, columns=["SAPID"]))
 
     with tab2:
-        st.markdown("**조건 2:** 30일 내 서로 다른 ProductReference를 수량 기준 5개 초과 구매")
+        st.markdown("**조건 2:** 30일 내 서로 다른 Article을 수량 기준 5개 초과 구매")
         st.write(f"위반 고객 수: {len(result2)}명")
         st.dataframe(pd.DataFrame(result2, columns=["SAPID"]))
 
     with tab3:
-        st.markdown("**조건 3:** 365일 내 서로 다른 ProductReference를 수량 기준 10개 초과 구매")
+        st.markdown("**조건 3:** 365일 내 서로 다른 Article을 수량 기준 10개 초과 구매")
         st.write(f"위반 고객 수: {len(result3)}명")
         st.dataframe(pd.DataFrame(result3, columns=["SAPID"]))
 
 else:
-    st.info("👈 위에서 엑셀 파일을 업로드하세요.")
+    st.info("👈 왼쪽에서 엑셀 파일을 업로드하세요.")
