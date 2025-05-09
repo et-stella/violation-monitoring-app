@@ -81,10 +81,19 @@ if uploaded_file:
     st.subheader("✅ 업로드한 데이터 미리보기")
     st.dataframe(df.head())
 
-    # 조건별 탐지 실행 및 정렬
-    result1 = detect_condition_1(df).sort_values(by='TotalQuantity', ascending=False)
-    result2 = detect_condition_2(df).sort_values(by='TotalQuantity', ascending=False)
-    result3 = detect_condition_3(df).sort_values(by='TotalQuantity', ascending=False)
+    # 조건별 탐지 실행 및 정렬 (안전하게 컬럼 체크 후 정렬)
+    result1 = detect_condition_1(df)
+    if 'TotalQuantity' in result1.columns:
+        result1 = result1.sort_values(by='TotalQuantity', ascending=False)
+
+    result2 = detect_condition_2(df)
+    if 'TotalQuantity' in result2.columns:
+        result2 = result2.sort_values(by='TotalQuantity', ascending=False)
+
+    result3 = detect_condition_3(df)
+    if 'TotalQuantity' in result3.columns:
+        result3 = result3.sort_values(by='TotalQuantity', ascending=False)
+
     returners = detect_heavy_returners(df)
 
     # 결과 출력
