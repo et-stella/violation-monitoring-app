@@ -33,7 +33,7 @@ def detect_condition_2(df):
             window = group[(group['PurchaseDate'] >= date - pd.Timedelta(days=30)) &
                            (group['PurchaseDate'] <= date)]
             qty_by_article = window.groupby('Article')['NetQuantity'].sum()
-                        if len(qty_by_article) > 5:
+            if len(qty_by_article) > 5:
                 for article, qty in qty_by_article.items():
                     result.append({'SAPID': sap, 'Article': article, 'TotalQuantity': qty})
                 break
@@ -47,8 +47,7 @@ def detect_condition_3(df):
             window = group[(group['PurchaseDate'] >= date - pd.Timedelta(days=365)) &
                            (group['PurchaseDate'] <= date)]
             qty_by_article = window.groupby('Article')['NetQuantity'].sum()
-            qty_by_article = qty_by_article[qty_by_article > 0]
-            if len(qty_by_article) > 10:
+                        if len(qty_by_article) > 10:
                 for article, qty in qty_by_article.items():
                     result.append({'SAPID': sap, 'Article': article, 'TotalQuantity': qty})
                 break
