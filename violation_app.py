@@ -49,7 +49,7 @@ def detect_condition_3(df):
             window = group[(group['PurchaseDate'] >= date - pd.Timedelta(days=365)) &
                            (group['PurchaseDate'] <= date)]
             qty_by_article = window.groupby('Article')['NetQuantity'].sum()
-            if qty_by_article[qty_by_article['NetQuantity'] != 0]['Article'].nunique() > 10:
+            if qty_by_article[qty_by_article != 0].count() > 10:
                 for article, qty in qty_by_article.items():
                     result.append({'SAPID': sap, 'Article': article, 'TotalQuantity': qty})
                 break
