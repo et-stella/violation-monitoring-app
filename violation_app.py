@@ -161,7 +161,9 @@ for month, val in monthly_return_qty.items():
                                                                                                                                             st.write(f"✅ 리턴 이력이 있는 고객 수는 총 고객 {total_customers}명 중 {return_customers}명이며, {return_ratio:.1f}% 비중을 차지합니다.")
                                                                                                                                             st.dataframe(returners.reset_index(drop=True).rename_axis(None).reset_index().rename(columns={"index": ""}))
 if True:
-                                                                                                                                        elif mode == "리포트 모드":
+if mode == "탐지 모드":
+    pass
+                                                                                                                                        else mode == "리포트 모드":
                                                                                                                                             st.header("📊 리포트 모드: 월별 트렌드 요약")
                                                                                                                                             df['Month'] = df['PurchaseDate'].dt.to_period('M').astype(str)
                                                                                                                                             # 1. 월별 총 리턴 수량
