@@ -188,10 +188,10 @@ with tab4:
         fig3, ax3 = plt.subplots(figsize=(8, 3.5))
         violation_df.plot(ax=ax3, marker='o', legend=True)
         
-        ax3.set_ylabel("비율 (%)", fontsize=8)
-        ax3.set_xlabel("월", fontsize=8)
-        ax3.tick_params(axis='x', labelrotation=45, labelsize=8)
-        ax3.tick_params(axis='y', labelsize=8)
+        ax3.set_ylabel("비율 (%)", fontsize=9)
+        ax3.set_xlabel("월", fontsize=9)
+        ax3.tick_params(axis='x', labelrotation=45, labelsize=7)
+        ax3.tick_params(axis='y', labelsize=7)
         ax3.legend(title="조건", fontsize=9, title_fontsize=10, loc='upper right')
         for line in ax3.lines:
             for x, y in zip(line.get_xdata(), line.get_ydata()):
@@ -205,8 +205,8 @@ with tab4:
         top_articles.plot(kind='bar', ax=ax4)
         for i, val in enumerate(top_articles):
             ax4.text(i, val, fontsize=8, f"{val:.0f}", ha='center', va='bottom')
-        ax4.set_ylabel("Return Quantity", fontsize=8)
-        ax4.set_xlabel("Article", fontsize=8)
+        ax4.set_ylabel("Return Quantity", fontsize=10)
+        ax4.set_xlabel("Article", fontsize=10)
         ax4.set_title("Top 10 Returned Articles")
         st.pyplot(fig4)
 
