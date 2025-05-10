@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
-plt.rcParams['font.family'] = 'Arial'  # Mac용 한글 폰트
+plt.rcParams['font.family'] = 'Calibri'  # Mac용 한글 폰트
 plt.rcParams['axes.unicode_minus'] = False
 
 
