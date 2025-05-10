@@ -22,7 +22,7 @@ for month, val in monthly_return_qty.items():
                     for article, qty in top_articles.items():
                         import os
                         from PIL import Image
-                        IMAGE_DIR = "images"
+IMAGE_DIR = "image"
                         def show_article_image(article):
                             for ext in ['.jpg', '.jpeg', '.png']:
                                 path = os.path.join(IMAGE_DIR, f"{article}{ext}")
@@ -104,6 +104,7 @@ for month, val in monthly_return_qty.items():
                                                                                                 # ---- 탐지 조건 1 ----
     with tab1:
         if not result1.empty and 'SAPID' in result1.columns:
+            pass
         st.markdown("**🖼 관련 이미지 (images/ 폴더 기준)**")
         for article in result1['Article'].unique():
         show_article_image(article)
@@ -112,6 +113,7 @@ for month, val in monthly_return_qty.items():
                                                                                                             # ---- 탐지 조건 2 ----
     with tab2:
         if not result2.empty and 'SAPID' in result2.columns:
+            pass
         st.markdown("**🖼 관련 이미지 (images/ 폴더 기준)**")
         for article in result2['Article'].unique():
         show_article_image(article)
@@ -120,6 +122,7 @@ for month, val in monthly_return_qty.items():
                                                                                                                         # ---- 탐지 조건 3 ----
     with tab3:
         if not result3.empty and 'SAPID' in result3.columns:
+            pass
         st.markdown("**🖼 관련 이미지 (images/ 폴더 기준)**")
         for article in result3['Article'].unique():
         show_article_image(article)
@@ -133,6 +136,7 @@ for month, val in monthly_return_qty.items():
         return_ratio = return_customers / total_customers * 100 if total_customers > 0 else 0
         st.write(f"✅ 리턴 이력이 있는 고객 수는 총 고객 {total_customers}명 중 {return_customers}명이며, {return_ratio:.1f}% 비중을 차지합니다.")
         if not returners.empty:
+            pass
     else:
                                                                                                                                             st.write("리턴 고객이 없습니다.")
                                                                                                                                             st.markdown("**리턴 고객 요약 (SAPID 기준)**")
