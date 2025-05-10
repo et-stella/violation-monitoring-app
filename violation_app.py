@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import io
 import io
+IMAGE_DIR = "image"
 import os
 from PIL import Image
 import matplotlib.font_manager as fm
@@ -27,10 +28,9 @@ for month, val in monthly_return_qty.items():
                 for month, val in avg_return_rate.items():
                     # Top 10 Article
                     for article, qty in top_articles.items():
-IMAGE_DIR = "image"
 def show_article_image(article):
     for ext in ['.jpg', '.jpeg', '.png']:
-        path = os.path.join(IMAGE_DIR, f"{article}{ext}")
+
         if os.path.exists(path):
             st.image(Image.open(path), caption=f"Article: {article}", width=120)
             break
