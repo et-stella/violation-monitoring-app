@@ -363,6 +363,10 @@ import io
 import tempfile
 
 
+import io
+import tempfile
+
+
 from fpdf import FPDF
 import io
 import tempfile
