@@ -51,14 +51,15 @@ def detect_condition_3(df):
 
 def detect_heavy_returners(df):
     return_df = df[df['NetQuantity'] < 0]
-    return_summary = return_df.groupby(['SAPID', 'Article'])['NetQuantity'].sum().reset_index()
-    return_summary['ReturnQty'] = return_summary['NetQuantity'].abs()
-    total_purchase = df[df['NetQuantity'] > 0].groupby(['SAPID', 'Article'])['NetQuantity'].sum().reset_index()
-    merged = pd.merge(return_summary, total_purchase, on=['SAPID', 'Article'], how='left', suffixes=('_Return', '_Purchase'))
-    merged['ReturnRate'] = merged['ReturnQty'] / merged['NetQuantity_Purchase']
-    merged = merged.drop(columns=['NetQuantity_Return', 'NetQuantity_Purchase'])
-    merged = merged[merged['ReturnRate'].notna()].sort_values(by='ReturnQty', ascending=False)
-    return merged
+    return_summary = return_df.groupby(['SAPID'])['NetQuantity'].sum().abs().reset_index()
+    return_summary.rename(columns={'NetQuantity': 'ReturnQty'}, inplace=True)
+
+    return_article_count = df[df['NetQuantity'] < 0].groupby('SAPID')['Article'].nunique()
+    purchase_article_count = df[df['NetQuantity'] > 0].groupby('SAPID')['Article'].nunique()
+    return_rate_by_sapid = (return_article_count / purchase_article_count).fillna(0)
+
+    return_summary['ReturnRate'] = return_summary['SAPID'].map(return_rate_by_sapid)
+    return return_summary.sort_values(by='ReturnQty', ascending=False)
 
 # 실행
 if uploaded_file:
@@ -79,79 +80,58 @@ if uploaded_file:
     result3 = detect_condition_3(df)
     returners = detect_heavy_returners(df)
 
-    if 'TotalQuantity' in result1.columns:
-        result1 = result1.sort_values(by='TotalQuantity', ascending=False)
-    if 'TotalQuantity' in result2.columns:
-        result2 = result2.sort_values(by='TotalQuantity', ascending=False)
-    if 'TotalQuantity' in result3.columns:
-        result3 = result3.sort_values(by='TotalQuantity', ascending=False)
-
-    # 모드 선택
     mode = st.selectbox("🧭 모드를 선택하세요", ["탐지 모드", "리포트 모드"])
 
     if mode == "탐지 모드":
         tab1, tab2, tab3, tab4 = st.tabs(["🔍 조건 1", "🔍 조건 2", "🔍 조건 3", "↩️ 리턴 고객"])
 
         with tab1:
-            st.markdown("**조건 1:** 동일 Article을 마지막 구매일 기준 365일 내 수량 2개 초과 구매")
-            if 'SAPID' in result1.columns:
-                selected_sapid = st.selectbox("고객 선택 (조건 1)", result1['SAPID'].unique())
-                st.dataframe(result1[result1['SAPID'] == selected_sapid])
-            else:
-                st.write("위반 고객이 없습니다.")
+            st.markdown("**조건 1 Raw 결과**")
+            st.dataframe(result1)
 
         with tab2:
-            st.markdown("**조건 2:** 마지막 구매일 기준 30일 내 서로 다른 Article 5개 초과 구매")
-            if 'SAPID' in result2.columns:
-                selected_sapid = st.selectbox("고객 선택 (조건 2)", result2['SAPID'].unique())
-                st.dataframe(result2[result2['SAPID'] == selected_sapid])
-            else:
-                st.write("위반 고객이 없습니다.")
+            st.markdown("**조건 2 Raw 결과**")
+            st.dataframe(result2)
 
         with tab3:
-            st.markdown("**조건 3:** 마지막 구매일 기준 365일 내 서로 다른 Article 10개 초과 구매")
-            if 'SAPID' in result3.columns:
-                selected_sapid = st.selectbox("고객 선택 (조건 3)", result3['SAPID'].unique())
-                st.dataframe(result3[result3['SAPID'] == selected_sapid])
-            else:
-                st.write("위반 고객이 없습니다.")
+            st.markdown("**조건 3 Raw 결과**")
+            st.dataframe(result3)
 
         with tab4:
-            st.markdown("**리턴이 많은 고객 요약**")
-            if not returners.empty:
-                return_article_count = df[df['NetQuantity'] < 0].groupby('SAPID')['Article'].nunique()
-                purchase_article_count = df[df['NetQuantity'] > 0].groupby('SAPID')['Article'].nunique()
-                return_rate_by_sapid = (return_article_count / purchase_article_count).fillna(0)
-
-                return_summary = returners.groupby('SAPID')['ReturnQty'].sum().reset_index()
-                return_summary['ReturnRate'] = return_summary['SAPID'].map(return_rate_by_sapid)
-
-                selected_sapid = st.selectbox("고객 선택 (리턴)", return_summary['SAPID'].unique())
-                st.dataframe(return_summary[return_summary['SAPID'] == selected_sapid])
-            else:
-                st.write("리턴 고객이 없습니다.")
+            st.markdown("**리턴 고객 요약 (SAPID 기준)**")
+            st.dataframe(returners)
 
     elif mode == "리포트 모드":
         st.header("📊 리포트 모드: 월별 트렌드 요약")
 
         df['Month'] = df['PurchaseDate'].dt.to_period('M').astype(str)
 
+        # 1. 월별 총 리턴 수량
         monthly_return_qty = df[df['NetQuantity'] < 0].groupby('Month')['NetQuantity'].sum().abs()
         st.subheader("📦 월별 총 리턴 수량")
-        st.bar_chart(monthly_return_qty)
+        fig1, ax1 = plt.subplots()
+        monthly_return_qty.plot(kind='bar', ax=ax1)
+        for i, val in enumerate(monthly_return_qty):
+            ax1.text(i, val, f"{val:.0f}", ha='center', va='bottom')
+        st.pyplot(fig1)
 
+        # 2. 월별 평균 리턴율
         return_articles = df[df['NetQuantity'] < 0].groupby(['SAPID', 'Month'])['Article'].nunique()
         purchase_articles = df[df['NetQuantity'] > 0].groupby(['SAPID', 'Month'])['Article'].nunique()
-        return_rate = (return_articles / purchase_articles).fillna(0).reset_index()
-        avg_return_rate = return_rate.groupby('Month')[0].mean()
+        return_rate = (return_articles / purchase_articles).fillna(0).reset_index(name='ReturnRate')
+        avg_return_rate = return_rate.groupby('Month')['ReturnRate'].mean()
         st.subheader("📈 월별 평균 리턴율")
-        st.line_chart(avg_return_rate)
+        fig2, ax2 = plt.subplots()
+        avg_return_rate.plot(ax=ax2, marker='o')
+        for i, val in enumerate(avg_return_rate):
+            ax2.text(i, val, f"{val:.2%}", ha='center', va='bottom')
+        st.pyplot(fig2)
 
+        # 3. 월별 조건별 위반율
         def compute_violation_rate(result_df, label):
             if result_df.empty:
                 return pd.Series(dtype=float)
-            temp = result_df.copy()
-            temp = temp.merge(df[['Article', 'PurchaseDate']], on='Article', how='left')
+            temp = result_df.merge(df[['Article', 'PurchaseDate']], on='Article', how='left')
             temp['Month'] = temp['PurchaseDate'].dt.to_period('M').astype(str)
             rate = temp.groupby('Month')['SAPID'].nunique() / df.groupby('Month')['SAPID'].nunique()
             return rate.rename(label)
@@ -163,6 +143,11 @@ if uploaded_file:
         violation_df = pd.concat([cond1_rate, cond2_rate, cond3_rate], axis=1).fillna(0)
 
         st.subheader("📉 월별 조건별 위반율")
-        st.line_chart(violation_df)
+        fig3, ax3 = plt.subplots()
+        violation_df.plot(ax=ax3, marker='o')
+        for line in ax3.lines:
+            for x, y in zip(line.get_xdata(), line.get_ydata()):
+                ax3.text(x, y, f"{y:.1%}", ha='center', va='bottom')
+        st.pyplot(fig3)
 else:
     st.info("👈 왼쪽에서 엑셀 파일을 업로드하세요.")
