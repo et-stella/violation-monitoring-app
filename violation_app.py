@@ -25,10 +25,10 @@ for month, val in monthly_return_qty.items():
 IMAGE_DIR = "image"
 def show_article_image(article):
     for ext in ['.jpg', '.jpeg', '.png']:
-                                path = os.path.join(IMAGE_DIR, f"{article}{ext}")
+        path = os.path.join(IMAGE_DIR, f"{article}{ext}")
         if os.path.exists(path):
-        st.image(Image.open(path), caption=f"Article: {article}", width=120)
-        break
+            st.image(Image.open(path), caption=f"Article: {article}", width=120)
+            break
                                     import matplotlib.font_manager as fm
                                     plt.rcParams['font.family'] = 'Arial'  # Mac용 한글 폰트
                                     plt.rcParams['axes.unicode_minus'] = False
