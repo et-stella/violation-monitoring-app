@@ -221,7 +221,6 @@ with tab4:
 
         # 4. 가장 많이 리턴된 Article Top 10
         st.subheader("📌 가장 많이 리턴된 Article Top 10")
-        # ✅ 계산 정의: 리턴 수량 기준 상위 10개 Article = NetQuantity < 0 인 값들의 합계를 기준으로 정렬
         top_articles = df[df['NetQuantity'] < 0].groupby('Article')['NetQuantity'].sum().abs().sort_values(ascending=False).head(10)
         fig4, ax4 = plt.subplots(figsize=(8, 3.5))
         top_articles.plot(kind='bar', ax=ax4)
