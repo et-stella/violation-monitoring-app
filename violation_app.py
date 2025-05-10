@@ -316,3 +316,54 @@ with tab4:
 
 else:
     st.info("👈 왼쪽에서 엑셀 파일을 업로드하세요.")
+
+
+from fpdf import FPDF
+import io
+import tempfile
+
+def create_pdf(monthly_return_qty, avg_return_rate, top_articles, fig1, fig2, fig3, fig4):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    pdf.cell(200, 10, txt="📄 커머셜 정책 리포트 요약", ln=True, align="C")
+
+    pdf.set_font("Arial", size=10)
+    pdf.ln(10)
+    pdf.cell(200, 10, txt="📦 월별 총 리턴 수량", ln=True)
+    for month, val in monthly_return_qty.items():
+        pdf.cell(200, 8, txt=f"{month}: {val:.0f}건", ln=True)
+
+    pdf.ln(5)
+    pdf.cell(200, 10, txt="📈 월별 평균 리턴율", ln=True)
+    for month, val in avg_return_rate.items():
+        pdf.cell(200, 8, txt=f"{month}: {val:.2%}", ln=True)
+
+    pdf.ln(5)
+    pdf.cell(200, 10, txt="📌 Top 10 리턴 Article", ln=True)
+    for article, qty in top_articles.items():
+        pdf.cell(200, 8, txt=f"{article}: {qty:.0f}건", ln=True)
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp1, \
+         tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp2, \
+         tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp3, \
+         tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp4:
+
+        fig1.savefig(tmp1.name, dpi=100, bbox_inches='tight')
+        fig2.savefig(tmp2.name, dpi=100, bbox_inches='tight')
+        fig3.savefig(tmp3.name, dpi=100, bbox_inches='tight')
+        fig4.savefig(tmp4.name, dpi=100, bbox_inches='tight')
+
+        pdf.add_page()
+        pdf.cell(200, 10, txt="📊 차트 요약", ln=True)
+        pdf.image(tmp1.name, w=180)
+        pdf.ln(5)
+        pdf.image(tmp2.name, w=180)
+        pdf.add_page()
+        pdf.image(tmp3.name, w=180)
+        pdf.ln(5)
+        pdf.image(tmp4.name, w=180)
+
+    pdf_output = io.BytesIO()
+    pdf.output(pdf_output)
+    return pdf_output.getvalue()
