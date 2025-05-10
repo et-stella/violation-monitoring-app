@@ -30,6 +30,7 @@ for month, val in monthly_return_qty.items():
                     for article, qty in top_articles.items():
 def show_article_image(article):
     for ext in ['.jpg', '.jpeg', '.png']:
+    pass
 
         if os.path.exists(path):
             st.image(Image.open(path), caption=f"Article: {article}", width=120)
