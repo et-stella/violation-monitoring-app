@@ -359,6 +359,10 @@ else:
     return pdf_output.getvalue()
 
 
+import io
+import tempfile
+
+
 from fpdf import FPDF
 import io
 import tempfile
