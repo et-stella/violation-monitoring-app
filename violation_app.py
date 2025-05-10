@@ -3,6 +3,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import io
 import io
+import os
+from PIL import Image
+import matplotlib.font_manager as fm
+import io
+import io
+import io
+
 # 월별 리턴 수량 텍스트 요약
 for month, val in monthly_return_qty.items():
     # 평균 리턴율 요약
@@ -20,8 +27,6 @@ for month, val in monthly_return_qty.items():
                 for month, val in avg_return_rate.items():
                     # Top 10 Article
                     for article, qty in top_articles.items():
-                        import os
-                        from PIL import Image
 IMAGE_DIR = "image"
 def show_article_image(article):
     for ext in ['.jpg', '.jpeg', '.png']:
@@ -29,7 +34,6 @@ def show_article_image(article):
         if os.path.exists(path):
             st.image(Image.open(path), caption=f"Article: {article}", width=120)
             break
-                                    import matplotlib.font_manager as fm
                                     plt.rcParams['font.family'] = 'Arial'  # Mac용 한글 폰트
                                     plt.rcParams['axes.unicode_minus'] = False
                                     st.set_page_config(page_title="커머셜 정책 위반 탐지기", page_icon="🛑", layout="wide")
@@ -214,9 +218,6 @@ if mode == "탐지 모드":
                                                                                                                                                                                     fig2.savefig(tmp2.name, dpi=100, bbox_inches='tight')
                                                                                                                                                                                     fig3.savefig(tmp3.name, dpi=100, bbox_inches='tight')
                                                                                                                                                                                     fig4.savefig(tmp4.name, dpi=100, bbox_inches='tight')
-                                                                                                                                                                                    import io
-                                                                                                                                                                                    import io
-                                                                                                                                                                                    import io
                                                                                                                                                                                     for month, val in monthly_return_qty.items():
                                                                                                                                                                                         for month, val in avg_return_rate.items():
                                                                                                                                                                                             for article, qty in top_articles.items():
