@@ -8,7 +8,7 @@ st.markdown("고객의 구매 수량을 기반으로 정책 위반 가능성을 
 
 uploaded_file = st.file_uploader("엑셀 파일 업로드", type=["xlsx"], key="file_upload_1")
 
-# ✅ 조건 1: 마지막 구매일 기준 365일 수량 > 2
+# ✅ 조건 1: 동일 Article, 마지막 구매일 기준 365일 내 수량 > 2
 def detect_condition_1(df):
     result = []
     for (sap, article), group in df.groupby(['SAPID', 'Article']):
@@ -21,7 +21,7 @@ def detect_condition_1(df):
             result.append({'SAPID': sap, 'Article': article, 'TotalQuantity': qty})
     return pd.DataFrame(result)
 
-# ✅ 조건 2: 마지막 구매일 기준 30일 내 고유 Article 수 > 5
+# ✅ 조건 2: 서로 다른 Article 5개 초과 (마지막 구매일 기준 30일)
 def detect_condition_2(df):
     result = []
     for sap, group in df.groupby('SAPID'):
@@ -36,7 +36,7 @@ def detect_condition_2(df):
                 result.append({'SAPID': sap, 'Article': article, 'TotalQuantity': qty})
     return pd.DataFrame(result)
 
-# ✅ 조건 3: 마지막 구매일 기준 365일 내 고유 Article 수 > 10
+# ✅ 조건 3: 서로 다른 Article 10개 초과 (마지막 구매일 기준 365일)
 def detect_condition_3(df):
     result = []
     for sap, group in df.groupby('SAPID'):
@@ -51,7 +51,7 @@ def detect_condition_3(df):
                 result.append({'SAPID': sap, 'Article': article, 'TotalQuantity': qty})
     return pd.DataFrame(result)
 
-# ✅ 리턴 고객
+# ✅ 리턴 고객 분석
 def detect_heavy_returners(df):
     return_df = df[df['NetQuantity'] < 0]
     return_summary = return_df.groupby(['SAPID', 'Article'])['NetQuantity'].sum().reset_index()
@@ -89,4 +89,48 @@ if uploaded_file:
     if 'TotalQuantity' in result3.columns:
         result3 = result3.sort_values(by='TotalQuantity', ascending=False)
 
-    tab1, tab2, tab3, tab4 = st.tabs(["🔍 조건 1", "🔍 조건 2", "🔍 조건 3", "↩️ 리턴]()
+    # ✅ 결과 출력 탭
+    tab1, tab2, tab3, tab4 = st.tabs(["🔍 조건 1", "🔍 조건 2", "🔍 조건 3", "↩️ 리턴 고객"])
+
+    with tab1:
+        st.markdown("**조건 1:** 동일 Article을 마지막 구매일 기준 365일 내 수량 2개 초과 구매")
+        if 'SAPID' in result1.columns:
+            st.write(f"위반 고객 수: {result1['SAPID'].nunique()}")
+            st.dataframe(result1[['SAPID']].drop_duplicates())
+        else:
+            st.write("위반 고객이 없습니다.")
+
+    with tab2:
+        st.markdown("**조건 2:** 마지막 구매일 기준 30일 내 서로 다른 Article 5개 초과 구매")
+        if 'SAPID' in result2.columns:
+            st.write(f"위반 고객 수: {result2['SAPID'].nunique()}")
+            st.dataframe(result2[['SAPID']].drop_duplicates())
+        else:
+            st.write("위반 고객이 없습니다.")
+
+    with tab3:
+        st.markdown("**조건 3:** 마지막 구매일 기준 365일 내 서로 다른 Article 10개 초과 구매")
+        if 'SAPID' in result3.columns:
+            st.write(f"위반 고객 수: {result3['SAPID'].nunique()}")
+            st.dataframe(result3[['SAPID']].drop_duplicates())
+        else:
+            st.write("위반 고객이 없습니다.")
+
+    with tab4:
+        st.markdown("**리턴이 많은 고객 + Article별 리턴율**")
+        if not returners.empty:
+            st.write(f"리턴 고객 수: {returners['SAPID'].nunique()}")
+            st.dataframe(returners)
+
+            st.markdown("**📊 가장 많이 리턴된 Article Top 10**")
+            top_articles = returners.groupby('Article')['ReturnQty'].sum().sort_values(ascending=False).head(10)
+            fig, ax = plt.subplots()
+            top_articles.plot(kind='bar', ax=ax)
+            ax.set_ylabel("Return Quantity")
+            ax.set_xlabel("Article")
+            ax.set_title("Top 10 Returned Articles")
+            st.pyplot(fig)
+        else:
+            st.write("리턴 고객이 없습니다.")
+else:
+    st.info("👈 왼쪽에서 엑셀 파일을 업로드하세요.")
