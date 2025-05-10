@@ -1,6 +1,38 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+from fpdf import FPDF
+import io
+
+def create_pdf(monthly_return_qty, avg_return_rate, top_articles):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    pdf.cell(200, 10, txt="📄 커머셜 정책 리포트 요약", ln=True, align="C")
+
+    # 월별 리턴 수량 요약
+    pdf.set_font("Arial", size=10)
+    pdf.ln(10)
+    pdf.cell(200, 10, txt="📦 월별 총 리턴 수량 요약", ln=True)
+    for month, val in monthly_return_qty.items():
+        pdf.cell(200, 8, txt=f"{month}: {val:.0f}건", ln=True)
+
+    # 평균 리턴율 요약
+    pdf.ln(5)
+    pdf.cell(200, 10, txt="📈 월별 평균 리턴율", ln=True)
+    for month, val in avg_return_rate.items():
+        pdf.cell(200, 8, txt=f"{month}: {val:.2%}", ln=True)
+
+    # Top 10 Article
+    pdf.ln(5)
+    pdf.cell(200, 10, txt="📌 Top 10 리턴 Article", ln=True)
+    for article, qty in top_articles.items():
+        pdf.cell(200, 8, txt=f"{article}: {qty:.0f}건", ln=True)
+
+    pdf_output = io.BytesIO()
+    pdf.output(pdf_output)
+    return pdf_output.getvalue()
+
 import os
 from PIL import Image
 
@@ -231,6 +263,11 @@ with tab4:
         ax4.set_xlabel("Article", fontsize=8)
         ax4.set_title("Top 10 Returned Articles")
         st.pyplot(fig4)
+
+        st.subheader("📄 PDF 리포트 다운로드")
+        pdf_bytes = create_pdf(monthly_return_qty, avg_return_rate, top_articles)
+        st.download_button("📥 PDF 리포트 받기", data=pdf_bytes, file_name="violation_report.pdf", mime="application/pdf")
+
 
 else:
     st.info("👈 왼쪽에서 엑셀 파일을 업로드하세요.")
