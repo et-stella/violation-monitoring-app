@@ -310,8 +310,6 @@ with tab4:
         st.pyplot(fig4)
 
         st.subheader("📄 PDF 리포트 다운로드")
-        pdf_bytes = create_pdf(monthly_return_qty, avg_return_rate, top_articles, fig1, fig2, fig3, fig4)
-        st.download_button("📥 PDF 리포트 받기", data=pdf_bytes, file_name="violation_report.pdf", mime="application/pdf")
 
 
 else:
@@ -360,22 +358,12 @@ else:
 
 
 import io
-import tempfile
 
 
 import io
-import tempfile
 
 
-from fpdf import FPDF
 import io
-import tempfile
-
-def create_pdf(monthly_return_qty, avg_return_rate, top_articles, fig1, fig2, fig3, fig4):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, txt="📄 커머셜 정책 리포트 요약", ln=True, align="C")
 
     pdf.set_font("Arial", size=10)
     pdf.ln(10)
