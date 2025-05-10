@@ -1,6 +1,10 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
+plt.rcParams['font.family'] = 'Calibri'  # Mac용 한글 폰트
+plt.rcParams['axes.unicode_minus'] = False
+
 
 st.set_page_config(page_title="커머셜 정책 위반 탐지기", page_icon="🛑", layout="wide")
 st.title("🛑 커머셜 정책 위반 탐지기")
@@ -87,19 +91,26 @@ if uploaded_file:
 
         with tab1:
             st.markdown("**조건 1 Raw 결과**")
-            st.dataframe(result1)
+            st.write(f"✅ 조건 1 위반 고객 수: {result1['SAPID'].nunique()}명")
+            st.dataframe(result1.reset_index(drop=True).rename_axis(None).reset_index().rename(columns={"index": ""}))
 
         with tab2:
             st.markdown("**조건 2 Raw 결과**")
-            st.dataframe(result2)
+            st.write(f"✅ 조건 2 위반 고객 수: {result2['SAPID'].nunique()}명")
+            st.dataframe(result2.reset_index(drop=True).rename_axis(None).reset_index().rename(columns={"index": ""}))
 
         with tab3:
             st.markdown("**조건 3 Raw 결과**")
-            st.dataframe(result3)
+            st.write(f"✅ 조건 3 위반 고객 수: {result3['SAPID'].nunique()}명")
+            st.dataframe(result3.reset_index(drop=True).rename_axis(None).reset_index().rename(columns={"index": ""}))
 
         with tab4:
             st.markdown("**리턴 고객 요약 (SAPID 기준)**")
-            st.dataframe(returners)
+            total_customers = df['SAPID'].nunique()
+            return_customers = returners['SAPID'].nunique()
+            return_ratio = return_customers / total_customers * 100 if total_customers > 0 else 0
+            st.write(f"✅ 리턴 이력이 있는 고객 수는 총 고객 {total_customers}명 중 {return_customers}명이며, {return_ratio:.1f}% 비중을 차지합니다.")
+            st.dataframe(returners.reset_index(drop=True).rename_axis(None).reset_index().rename(columns={"index": ""}))
 
     elif mode == "리포트 모드":
         st.header("📊 리포트 모드: 월별 트렌드 요약")
@@ -143,11 +154,30 @@ if uploaded_file:
         violation_df = pd.concat([cond1_rate, cond2_rate, cond3_rate], axis=1).fillna(0)
 
         st.subheader("📉 월별 조건별 위반율")
-        fig3, ax3 = plt.subplots()
-        violation_df.plot(ax=ax3, marker='o')
+        fig3, ax3 = plt.subplots(figsize=(10, 5))
+        violation_df.plot(ax=ax3, marker='o', legend=True)
+        ax3.set_title("Violation Rate by Condition", fontsize=14)
+        ax3.set_ylabel("비율 (%)", fontsize=10)
+        ax3.set_xlabel("월", fontsize=10)
+        ax3.tick_params(axis='x', labelrotation=45, labelsize=8)
+        ax3.tick_params(axis='y', labelsize=8)
+        ax3.legend(title="조건", fontsize=9, title_fontsize=10, loc='upper right')
         for line in ax3.lines:
             for x, y in zip(line.get_xdata(), line.get_ydata()):
-                ax3.text(x, y, f"{y:.1%}", ha='center', va='bottom')
+                ax3.text(x, y, f"{y:.1%}", ha='center', va='bottom', fontsize=8)
         st.pyplot(fig3)
+
+        # 4. 가장 많이 리턴된 Article Top 10
+        st.subheader("📌 가장 많이 리턴된 Article Top 10")
+        top_articles = df[df['NetQuantity'] < 0].groupby('Article')['NetQuantity'].sum().abs().sort_values(ascending=False).head(10)
+        fig4, ax4 = plt.subplots()
+        top_articles.plot(kind='bar', ax=ax4)
+        for i, val in enumerate(top_articles):
+            ax4.text(i, val, f"{val:.0f}", ha='center', va='bottom')
+        ax4.set_ylabel("Return Quantity")
+        ax4.set_xlabel("Article")
+        ax4.set_title("Top 10 Returned Articles")
+        st.pyplot(fig4)
+
 else:
     st.info("👈 왼쪽에서 엑셀 파일을 업로드하세요.")
