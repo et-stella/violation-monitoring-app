@@ -65,7 +65,12 @@ def detect_heavy_returners(df):
     return return_summary.sort_values(by='ReturnQty', ascending=False)
 
 if uploaded_file:
-    df = pd.read_excel(uploaded_file)
+    try:
+        df = pd.read_excel(uploaded_file)
+    except Exception as e:
+        st.error(f"❗ 엑셀 파일을 여는 데 실패했습니다: {e}")
+        st.stop()
+
     df['PurchaseDate'] = pd.to_datetime(df['PurchaseDate'], errors='coerce')
     df['NetQuantity'] = pd.to_numeric(df['NetQuantity'], errors='coerce').fillna(0)
 
@@ -114,5 +119,6 @@ if uploaded_file:
             return_ratio = return_customers / total_customers * 100 if total_customers > 0 else 0
             st.write(f"✅ 리턴 이력이 있는 고객 수는 총 고객 {total_customers}명 중 {return_customers}명이며, {return_ratio:.1f}% 비중을 차지합니다.")
             st.dataframe(returners.reset_index(drop=True))
-else:
+
+elif uploaded_file is None:
     st.info("👈 왼쪽에서 엑셀 파일을 업로드하세요.")
