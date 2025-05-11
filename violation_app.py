@@ -120,73 +120,68 @@ if uploaded_file:
             st.write(f"✅ 리턴 이력이 있는 고객 수는 총 고객 {total_customers}명 중 {return_customers}명이며, {return_ratio:.1f}% 비중을 차지합니다.")
             st.dataframe(returners.reset_index(drop=True))
 
-elif uploaded_file is None:
+    elif mode == "리포트 모드":
+        st.header("📊 리포트 모드: 월별 트렌드 요약")
+
+        df['Month'] = df['PurchaseDate'].dt.to_period('M').astype(str)
+
+        monthly_return_qty = df[df['NetQuantity'] < 0].groupby('Month')['NetQuantity'].sum().abs()
+        st.subheader("📦 월별 총 리턴 수량")
+        fig1, ax1 = plt.subplots()
+        monthly_return_qty.plot(kind='bar', ax=ax1)
+        for i, val in enumerate(monthly_return_qty):
+            ax1.text(i, val, f"{val:.0f}", ha='center', va='bottom')
+        st.pyplot(fig1)
+
+        return_articles = df[df['NetQuantity'] < 0].groupby(['SAPID', 'Month'])['Article'].nunique()
+        purchase_articles = df[df['NetQuantity'] > 0].groupby(['SAPID', 'Month'])['Article'].nunique()
+        return_rate = (return_articles / purchase_articles).fillna(0).reset_index(name='ReturnRate')
+        avg_return_rate = return_rate.groupby('Month')['ReturnRate'].mean()
+        st.subheader("📈 월별 평균 리턴율")
+        fig2, ax2 = plt.subplots()
+        avg_return_rate.plot(ax=ax2, marker='o')
+        for i, val in enumerate(avg_return_rate):
+            ax2.text(i, val, f"{val:.2%}", ha='center', va='bottom')
+        st.pyplot(fig2)
+
+        def compute_violation_rate(result_df, label):
+            if result_df.empty:
+                return pd.Series(dtype=float)
+            temp = result_df.merge(df[['Article', 'PurchaseDate']], on='Article', how='left')
+            temp['Month'] = temp['PurchaseDate'].dt.to_period('M').astype(str)
+            rate = temp.groupby('Month')['SAPID'].nunique() / df.groupby('Month')['SAPID'].nunique()
+            return rate.rename(label)
+
+        cond1_rate = compute_violation_rate(result1, '조건 1')
+        cond2_rate = compute_violation_rate(result2, '조건 2')
+        cond3_rate = compute_violation_rate(result3, '조건 3')
+
+        violation_df = pd.concat([cond1_rate, cond2_rate, cond3_rate], axis=1).fillna(0)
+
+        st.subheader("📉 월별 조건별 위반율")
+        fig3, ax3 = plt.subplots(figsize=(10, 5))
+        violation_df.plot(ax=ax3, marker='o', legend=True)
+        ax3.set_title("Violation Rate by Condition", fontsize=14)
+        ax3.set_ylabel("비율 (%)", fontsize=10)
+        ax3.set_xlabel("월", fontsize=10)
+        ax3.tick_params(axis='x', labelrotation=45, labelsize=8)
+        ax3.tick_params(axis='y', labelsize=8)
+        ax3.legend(title="조건", fontsize=9, title_fontsize=10, loc='upper right')
+        for line in ax3.lines:
+            for x, y in zip(line.get_xdata(), line.get_ydata()):
+                ax3.text(x, y, f"{y:.1%}", ha='center', va='bottom', fontsize=8)
+        st.pyplot(fig3)
+
+        st.subheader("📌 가장 많이 리턴된 Article Top 10")
+        top_articles = df[df['NetQuantity'] < 0].groupby('Article')['NetQuantity'].sum().abs().sort_values(ascending=False).head(10)
+        fig4, ax4 = plt.subplots()
+        top_articles.plot(kind='bar', ax=ax4)
+        for i, val in enumerate(top_articles):
+            ax4.text(i, val, f"{val:.0f}", ha='center', va='bottom')
+        ax4.set_ylabel("Return Quantity")
+        ax4.set_xlabel("Article")
+        ax4.set_title("Top 10 Returned Articles")
+        st.pyplot(fig4)
+
+else:
     st.info("👈 왼쪽에서 엑셀 파일을 업로드하세요.")
-
-
-elif mode == "리포트 모드":
-    st.header("📊 리포트 모드: 월별 트렌드 요약")
-
-    df['Month'] = df['PurchaseDate'].dt.to_period('M').astype(str)
-
-    # 1. 월별 총 리턴 수량
-    monthly_return_qty = df[df['NetQuantity'] < 0].groupby('Month')['NetQuantity'].sum().abs()
-    st.subheader("📦 월별 총 리턴 수량")
-    fig1, ax1 = plt.subplots()
-    monthly_return_qty.plot(kind='bar', ax=ax1)
-    for i, val in enumerate(monthly_return_qty):
-        ax1.text(i, val, f"{val:.0f}", ha='center', va='bottom')
-    st.pyplot(fig1)
-
-    # 2. 월별 평균 리턴율
-    return_articles = df[df['NetQuantity'] < 0].groupby(['SAPID', 'Month'])['Article'].nunique()
-    purchase_articles = df[df['NetQuantity'] > 0].groupby(['SAPID', 'Month'])['Article'].nunique()
-    return_rate = (return_articles / purchase_articles).fillna(0).reset_index(name='ReturnRate')
-    avg_return_rate = return_rate.groupby('Month')['ReturnRate'].mean()
-    st.subheader("📈 월별 평균 리턴율")
-    fig2, ax2 = plt.subplots()
-    avg_return_rate.plot(ax=ax2, marker='o')
-    for i, val in enumerate(avg_return_rate):
-        ax2.text(i, val, f"{val:.2%}", ha='center', va='bottom')
-    st.pyplot(fig2)
-
-    # 3. 월별 조건별 위반율
-    def compute_violation_rate(result_df, label):
-        if result_df.empty:
-            return pd.Series(dtype=float)
-        temp = result_df.merge(df[['Article', 'PurchaseDate']], on='Article', how='left')
-        temp['Month'] = temp['PurchaseDate'].dt.to_period('M').astype(str)
-        rate = temp.groupby('Month')['SAPID'].nunique() / df.groupby('Month')['SAPID'].nunique()
-        return rate.rename(label)
-
-    cond1_rate = compute_violation_rate(result1, '조건 1')
-    cond2_rate = compute_violation_rate(result2, '조건 2')
-    cond3_rate = compute_violation_rate(result3, '조건 3')
-
-    violation_df = pd.concat([cond1_rate, cond2_rate, cond3_rate], axis=1).fillna(0)
-
-    st.subheader("📉 월별 조건별 위반율")
-    fig3, ax3 = plt.subplots(figsize=(10, 5))
-    violation_df.plot(ax=ax3, marker='o', legend=True)
-    ax3.set_title("Violation Rate by Condition", fontsize=14)
-    ax3.set_ylabel("비율 (%)", fontsize=10)
-    ax3.set_xlabel("월", fontsize=10)
-    ax3.tick_params(axis='x', labelrotation=45, labelsize=8)
-    ax3.tick_params(axis='y', labelsize=8)
-    ax3.legend(title="조건", fontsize=9, title_fontsize=10, loc='upper right')
-    for line in ax3.lines:
-        for x, y in zip(line.get_xdata(), line.get_ydata()):
-            ax3.text(x, y, f"{y:.1%}", ha='center', va='bottom', fontsize=8)
-    st.pyplot(fig3)
-
-    # 4. 가장 많이 리턴된 Article Top 10
-    st.subheader("📌 가장 많이 리턴된 Article Top 10")
-    top_articles = df[df['NetQuantity'] < 0].groupby('Article')['NetQuantity'].sum().abs().sort_values(ascending=False).head(10)
-    fig4, ax4 = plt.subplots()
-    top_articles.plot(kind='bar', ax=ax4)
-    for i, val in enumerate(top_articles):
-        ax4.text(i, val, f"{val:.0f}", ha='center', va='bottom')
-    ax4.set_ylabel("Return Quantity")
-    ax4.set_xlabel("Article")
-    ax4.set_title("Top 10 Returned Articles")
-    st.pyplot(fig4)
