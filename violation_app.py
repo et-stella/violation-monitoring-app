@@ -137,14 +137,14 @@ if uploaded_file:
         purchase_articles = df[df['NetQuantity'] > 0].groupby(['SAPID', 'Month'])['Article'].nunique()
         return_rate = (return_articles / purchase_articles).fillna(0).reset_index(name='ReturnRate')
         avg_return_rate = return_rate.groupby('Month')['ReturnRate'].mean()
-        st.subheader("📈 월별 평균 리턴율")
-        fig2, ax2 = plt.subplots()
-        avg_return_rate.plot(ax=ax2, marker='o')
-        for i, val in enumerate(avg_return_rate):
-            ax2.text(i, val, f"{val:.2%}", ha='center', va='bottom')
-        st.pyplot(fig2)
 
-        def compute_violation_rate(result_df, label):
+        def compute_violation_count(result_df, label):
+            if result_df.empty:
+                return pd.Series(dtype=int)
+            temp = result_df.merge(df[['Article', 'PurchaseDate']], on='Article', how='left')
+            temp['Month'] = temp['PurchaseDate'].dt.to_period('M').astype(str)
+            count = temp.groupby('Month')['SAPID'].nunique()
+            return count.rename(label)
             if result_df.empty:
                 return pd.Series(dtype=float)
             temp = result_df.merge(df[['Article', 'PurchaseDate']], on='Article', how='left')
@@ -152,24 +152,24 @@ if uploaded_file:
             rate = temp.groupby('Month')['SAPID'].nunique() / df.groupby('Month')['SAPID'].nunique()
             return rate.rename(label)
 
-        cond1_rate = compute_violation_rate(result1, '조건 1')
-        cond2_rate = compute_violation_rate(result2, '조건 2')
-        cond3_rate = compute_violation_rate(result3, '조건 3')
+        cond1_count = compute_violation_count(result1, '조건 1')
+        cond2_count = compute_violation_count(result2, '조건 2')
+        cond3_count = compute_violation_count(result3, '조건 3')
 
-        violation_df = pd.concat([cond1_rate, cond2_rate, cond3_rate], axis=1).fillna(0)
+        violation_df = pd.concat([cond1_count, cond2_count, cond3_count], axis=1).fillna(0)
 
         st.subheader("📉 월별 조건별 위반율")
         fig3, ax3 = plt.subplots(figsize=(10, 5))
         violation_df.plot(ax=ax3, marker='o', legend=True)
         ax3.set_title("Violation Rate by Condition", fontsize=14)
-        ax3.set_ylabel("비율 (%)", fontsize=10)
+        ax3.set_ylabel('위반 고객 수', fontsize=10)
         ax3.set_xlabel("월", fontsize=10)
         ax3.tick_params(axis='x', labelrotation=45, labelsize=8)
         ax3.tick_params(axis='y', labelsize=8)
         ax3.legend(title="조건", fontsize=9, title_fontsize=10, loc='upper right')
         for line in ax3.lines:
             for x, y in zip(line.get_xdata(), line.get_ydata()):
-                ax3.text(x, y, f"{y:.1%}", ha='center', va='bottom', fontsize=8)
+                ax3.text(x, y, f"{int(y)}", ha='center', va='bottom', fontsize=8)
         st.pyplot(fig3)
 
         st.subheader("📌 가장 많이 리턴된 Article Top 10")
