@@ -159,20 +159,6 @@ if uploaded_file:
 
         violation_df = pd.concat([cond1_count, cond2_count, cond3_count], axis=1).fillna(0)
 
-        st.subheader("📉 월별 조건별 위반율")
-        fig3, ax3 = plt.subplots(figsize=(10, 5))
-        violation_df.plot(ax=ax3, marker='o', legend=True)
-        ax3.set_title("Violation Rate by Condition", fontsize=14)
-        ax3.set_ylabel('위반 고객 수', fontsize=10)
-        ax3.set_xlabel("월", fontsize=10)
-        ax3.tick_params(axis='x', labelrotation=45, labelsize=8)
-        ax3.tick_params(axis='y', labelsize=8)
-        ax3.legend(title="조건", fontsize=9, title_fontsize=10, loc='upper right')
-        for line in ax3.lines:
-            for x, y in zip(line.get_xdata(), line.get_ydata()):
-                ax3.text(x, y, f"{int(y)}", ha='center', va='bottom', fontsize=8)
-        st.pyplot(fig3)
-
         st.subheader("📌 가장 많이 리턴된 Article Top 10")
         top_articles = df[df['NetQuantity'] < 0].groupby('Article')['NetQuantity'].sum().abs().sort_values(ascending=False).head(10)
         fig4, ax4 = plt.subplots()
